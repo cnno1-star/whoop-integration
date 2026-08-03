@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WHOOP 授权回调 - Health Archive</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 640px;
+            width: 100%;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 32px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+        }
+        h1 {
+            color: #f0f6fc;
+            font-size: 24px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .badge-success { background: #238636; color: #fff; }
+        .badge-error { background: #da3633; color: #fff; }
+        .status-box {
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            font-weight: 500;
+        }
+        .status-success { background: #033a16; border: 1px solid #238636; }
+        .status-error { background: #4a0e0e; border: 1px solid #da3633; }
+        .code-label {
+            font-size: 14px;
+            color: #8b949e;
+            margin-bottom: 8px;
+        }
+        .code-box {
+            background: #010409;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 16px;
+            font-family: "SF Mono", Menlo, Consolas, monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #79c0ff;
+            word-break: break-all;
+            user-select: all;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        .code-box:hover { border-color: #58a6ff; }
+        .code-box:active { background: #0d1117; }
+        .steps {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-top: 24px;
+        }
+        .steps h3 {
+            color: #f0f6fc;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+        .steps ol {
+            margin-left: 20px;
+            color: #8b949e;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+        .steps kbd {
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-family: inherit;
+            font-size: 12px;
+            color: #f0f6fc;
+        }
+        .footer {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid #30363d;
+            font-size: 12px;
+            color: #6e7681;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>
+            <span>🏃</span>
+            WHOOP 授权回调
+        </h1>
+
+        <div id="status" class="status-box"></div>
+
+        <div id="content"></div>
+
+        <div class="footer">
+            Health Archive · WHOOP OAuth Callback Handler
+        </div>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get('code');
+        const error = params.get('error');
+        const errorDesc = params.get('error_description');
+
+        const statusEl = document.getElementById('status');
+        const contentEl = document.getElementById('content');
+
+        function render(title, statusClass, badgeClass, bodyHTML) {
+            statusEl.className = 'status-box ' + statusClass;
+            statusEl.innerHTML = `<span class="badge ${badgeClass}">${title}</span>`;
+            contentEl.innerHTML = bodyHTML;
+        }
+
+        if (error) {
+            render('授权失败', 'status-error', 'badge-error', `
+                <p style="color:#ffa198; margin-bottom:16px;">
+                    <strong>错误代码:</strong> ${error}
+                </p>
+                ${errorDesc ? `<p style="color:#8b949e; margin-bottom:16px;">${errorDesc}</p>` : ''}
+                <div class="steps">
+                    <h3>📋 请返回终端排查：</h3>
+                    <ol>
+                        <li>检查 Whoop 应用后台的 Redirect URI 是否与请求一致</li>
+                        <li>确认 Scopes 配置包含请求中的所有 scopes</li>
+                        <li>确认应用处于 Active / 测试模式</li>
+                        <li>重新运行 <code>oauth_auth.py</code></li>
+                    </ol>
+                </div>
+            `);
+        } else if (code) {
+            render('授权成功', 'status-success', 'badge-success', `
+                <p class="code-label">📋 授权码（点击下方框自动全选）：</p>
+                <div class="code-box" id="code" title="点击全选">${code}</div>
+                <div class="steps">
+                    <h3>🚀 下一步操作：</h3>
+                    <ol>
+                        <li>点击上方授权码框（已自动选中）</li>
+                        <li>按 <kbd>⌘ C</kbd>（Mac）或 <kbd>Ctrl C</kbd>（Windows）复制</li>
+                        <li>切换到终端窗口</li>
+                        <li>粘贴到 <code>请粘贴授权码 (code):</code> 提示处</li>
+                        <li>按 <kbd>Enter</kbd> 提交，脚本会自动换取 Token</li>
+                    </ol>
+                </div>
+            `);
+
+            // 点击代码框自动选中
+            document.getElementById('code').addEventListener('click', function() {
+                const range = document.createRange();
+                range.selectNodeContents(this);
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
+            });
+        } else {
+            render('未知状态', 'status-error', 'badge-error', `
+                <p style="color:#ffa198;">URL 中没有授权码（code）或错误（error）参数。</p>
+                <div class="steps">
+                    <h3>请重新发起授权：</h3>
+                    <ol>
+                        <li>回到终端，重新运行 <code>oauth_auth.py</code></li>
+                        <li>在浏览器中点击生成的授权 URL</li>
+                    </ol>
+                </div>
+            `);
+        }
+    </script>
+</body>
+</html>
